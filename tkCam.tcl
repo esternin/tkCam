@@ -1,6 +1,6 @@
 #!/bin/bash
 # the next line restarts using undroidwish or vanillawish\
-exec /usr/local/softdist/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
+exec /usr/local/bin/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
 
 # Requires these source codes
 #   http://www.androwish.org/download/androwish-a03343f4cf.tar.gz
