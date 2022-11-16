@@ -1,11 +1,6 @@
 #!/bin/bash
 # the next line restarts using undroidwish or vanillawish\
-exec /usr/local/bin/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
-
-# Requires these source codes
-#   http://www.androwish.org/download/androwish-a03343f4cf.tar.gz
-# With this patch for v4l2.c for proper exposure control
-#   http://www.androwish.org/index.html/artifact/f155da6fa5a18e7e
+exec /usr/local/bin/vanillawish "$0" -sdlresizable "$@"
 
 # Written by E.Sternin, as proof of concept, but proved more reliable than "cheese"
 # 2017.04.11 - initial release
@@ -16,11 +11,14 @@ exec /usr/local/bin/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlh
 # 2022.11.05 - canvas resize bug, basic help, cameras with missing controls
 # 2022.11.12 - switch v4l2 -> tcluvc, record/stop for unlimited recording
 # 2022.11.14 - catch failed parameter setting; frame rate adjusted on format change
+# 2022.11.15 - cosmetic improvements, auto-save option on clip capture for instant recording
 
 set APPNAME [lindex [file split [info script]] end]
 set PLATFORM [lindex [array get tcl_platform os] 1]
-set VERSION 2022.11.14
+set VERSION 2022.11.15
 set DEBUG 0
+set MINW  640
+set MINH  360
 
 # these are all built-in
 package require Tk
@@ -43,24 +41,27 @@ foreach font [font names] {
 tk scaling -displayof . $factor
 
 ### special characters in UTF8, will scale properly on high-DPI displays
-set char_bullseye \u25CE;	# "disconnected" state, empty middle
+set char_bullseye \u25CE;	# "disconnected" state, empty middle, or \u2205=empty set
 set char_fisheye  \u25C9;	# "connected" state, filled middle/
 set char_play     \u25B6;	# right-pointing triangle
-set char_record   \u25CF;	# filled circle, big one = \2B24
-set char_stop     \u25A0;	# filled square, big one = \2B1B
+set char_record   \u25CF;	# filled circle, big one = \u2B24
+set char_disk     \u26C1;	# ⛁ (white drafts king), or \u26B6 = ⚶ (vesta)
+set char_stop     \u25A0;	# filled square, big one = \u2B1B
 set char_power    \u23FB;	# power switch, may not be available (new)
 set char_gear     \u2699;	# settings "wheel"
-set char_cross    \u274C;	# big cross for exit
+set char_cross    \u274C;	# big cross for exit, or \u2716
 set char_reload   \u21BB;	# or use \u2B6E = clockwise gapped/open circle arrow
 
 set help "
 USB cameras (webcams) vary, in the settings ($char_gear), the range of frame sizes and rates, the video pixel formats, etc.
 
-Select a camera of your choice and toggle connect ($char_bullseye); if there is only one, it may have auto-connected ($char_fisheye).
+Select a camera of your choice and toggle connect ($char_bullseye); it is safer to disconnect a connected ($char_fisheye) camera before selecting another.
 
 Use \[Preview\] to connect to the video stream and adjust parameters to the desired values, clicking or entering numbers directly. One can type \"reset\" or \"auto\" instead of a number into exposure field. Invalid numbers will be ignored. Valid ranges can be found under the settings menu ($char_gear) where everything is read-only.
 
 Left-click inside the video frame will capture a snapshot; right-click will cycle through mirroring options.
+
+If a control is greyed out, it's not available for this camera.
 
 Once satisfied with the settings, use record/stop buttons ($char_record/$char_stop) to capture a video clip.
 "
@@ -238,7 +239,8 @@ proc SetFrameSize {} {
   ### if were streaming, re-start
   if {$vd_state eq "capture"} { after 500; uvc start $vd }
 
-  uvc image $vd [.main.img cget -image] 
+  uvc image $vd [.main.img cget -image]
+  .main.params configure -height $fh
   SetStatus "ok" "Set frame size to $frame"
   }	
 
@@ -298,19 +300,23 @@ proc UpdateParams {} {
     if {"$searchString" != ""} {textSearch .main.params.bot.text $searchString search}
     }\
   else {
-    .main.params.bot.text insert end "Camera reports no adjustable parameters"
+    .main.params.bot.text insert end "Camera reports no parameters"
     }
   }
 
 # toggle the left frame (settings) on/off
 proc ToggleSettings {} {
-  global show_settings
+  global show_settings frame
   if {$show_settings == 1} {
     pack forget .main.params 
     set show_settings 0
     } \
   else {
-    pack .main.img .main.params -side left
+    pack .main.params -side right -fill y
+    ### reset size and repack both widgets in params.bot, to match frame height
+    .main.params.bot.text configure -height 1
+    pack .main.params.bot.text   -side left  -expand yes -fill y
+    pack .main.params.bot.scroll -side right -fill y
     set show_settings 1
     GetParams
     }
@@ -370,8 +376,14 @@ proc CaptureClip {button duration} {
     }\
   else {
     set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%S}]
-    set fn [tk_getSaveFile -filetypes { {{video} {.mp4 .mkv}} {{All Files} *} } \
-      -initialfile [format "video-%s.mp4" $time_stamp] -defaultextension .mp4]
+    set initfn [format "video-%s.mp4" $time_stamp]
+    if ($::autosave) {
+      set fn $initfn
+      }\
+    else {
+      set fn [ tk_getSaveFile -filetypes {{{video} {.mp4}} {{All Files} *}} \
+        -initialfile $initfn -defaultextension .mp4 ]
+      }
     if { $fn != "" } {
      set rec_chan [open $fn w+]
       chan configure $rec_chan -encoding binary
@@ -401,7 +413,7 @@ proc snapshot {} {
   image create photo snapshot_img
   uvc image $vd snapshot_img
     
-  set types {{"Image files" {.png}}} -text "$char_record" -foreground "#dd0000" \
+  set types {{"Image files" {.png}}} -text "$::char_record" -foreground "#dd0000" \
    -helptext "Start recording a clip" -helptype balloon -state disabled
   set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%S}]
   set filename [tk_getSaveFile -filetypes $types \
@@ -419,8 +431,8 @@ proc snapshot {} {
 
 ### top level: interactions with window manager
 ### place wm . close to the top left
-set wmX [expr { ([winfo screenwidth  . ] / 4) }]
-set wmY [expr { ([winfo screenheight . ] / 4) }]
+set wmX [expr { (([winfo screenwidth  . ] - $MINW)/ 4) }]
+set wmY [expr { (([winfo screenheight . ] - $MINH) / 4) }]
 wm geometry . "+${wmX}+${wmY}"
 wm title . "USB Camera Control ($APPNAME,$PLATFORM) v.$VERSION"
 #wm attributes . -fullscreen 1
@@ -445,6 +457,8 @@ Button .tbar.settings -text "$char_gear" -command {ToggleSettings} \
 button .tbar.b -command [list startstop .tbar.b] -text "No camera"
 Button .tbar.clip -command { CaptureClip .tbar.clip 5 } -text "$char_record" -foreground "#dd0000" \
   -helptext "Start recording a clip" -helptype balloon -state disabled
+checkbutton .tbar.autosave -text "$char_disk" -variable autosave 
+DynamicHelp::register .tbar.autosave balloon "Save clips to disk, automatic file names"
 Button .tbar.exit -text "$char_cross" -foreground "#dd0000" -command { exit } \
   -helptext "Terminate the program" -helptype balloon
 button .tbar.help -text "?" -width 1
@@ -458,14 +472,14 @@ spinbox .tbar.exp -width 5 -textvariable exp -state disabled
 set exp ""
 
 frame .main -relief raised -borderwidth 1
-label .main.img -image [image create photo -width 640 -height 480]
+label .main.img -image [image create photo -width $MINW -height $MINH]
 frame .main.params
 frame .main.params.bot 
-text  .main.params.bot.text -yscrollcommand ".main.params.bot.scroll set" -setgrid true
+text  .main.params.bot.text -yscrollcommand ".main.params.bot.scroll set" -setgrid true -width 35
 scrollbar .main.params.bot.scroll -command ".main.params.bot.text yview"
 frame .main.params.top
 button .main.params.top.refresh -text "$char_reload" -command "GetParams"
-entry .main.params.top.entry -width 25 -textvariable searchString
+entry .main.params.top.entry -width 20 -textvariable searchString
 set searchString "exposure"
 button .main.params.top.button -text "Find" -command "textSearch .main.params.bot.text \$searchString search"
 
@@ -474,25 +488,26 @@ label .status.led  -text "" -background green -width 2
 label .status.text -text "Ready. Connect to a camera from the selection list, then click \"Preview\""
 
 # only one device available, try to initialize it
-if { [llength $DeviceList] == 1 } {InitVideo $Vdev}
+#if { [llength $DeviceList] == 1 } {InitVideo $Vdev}
 
 pack .tbar -side top -fill x
-pack .tbar.connect .tbar.vdev .tbar.frame .tbar.frate .tbar.lab .tbar.exp .tbar.b .tbar.clip -side left
+pack .tbar.connect .tbar.vdev .tbar.frame .tbar.frate .tbar.lab .tbar.exp .tbar.b .tbar.clip .tbar.autosave -side left
 pack .tbar.exit .tbar.settings .tbar.help -side right
 
 pack .status -side bottom -fill x
 pack .status.led .status.text -side left
 
 pack .main.img -side left
+pack .main.params -side right -fill y
 pack .main.params.top -side top
 pack .main.params.bot -side top -expand yes -fill y
 pack .main.params.top.refresh -side left -pady 5 -padx 10
 pack .main.params.top.entry -side left
 pack .main.params.top.button -side left -pady 5 -padx 10
 pack .main.params.bot.text -side left -expand yes -fill y
-.main.params.bot.text configure -width 50 -height 30
 pack .main.params.bot.scroll -side right -fill y
 bind .main.params.top.entry <Return> "textSearch .main.params.bot.text \$searchString search"
+pack forget .main.params
 
 pack .tbar .main -side top
 pack .status -side bottom
