@@ -376,13 +376,13 @@ proc CaptureClip {button duration} {
     }\
   else {
     set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%S}]
-    set initfn [format "video-%s.mp4" $time_stamp]
+    set initfn [format "video-%s.avi" $time_stamp]
     if ($::autosave) {
       set fn $initfn
       }\
     else {
-      set fn [ tk_getSaveFile -filetypes {{{video} {.mp4}} {{All Files} *}} \
-        -initialfile $initfn -defaultextension .mp4 ]
+      set fn [ tk_getSaveFile -filetypes {{{video} {.avi}} {{All Files} *}} \
+        -initialfile $initfn -defaultextension .avi ]
       }
     if { $fn != "" } {
      set rec_chan [open $fn w+]
