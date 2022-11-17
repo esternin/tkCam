@@ -12,7 +12,7 @@ exec /usr/local/bin/vanillawish "$0" -sdlresizable "$@"
 # 2022.11.12 - switch v4l2 -> tcluvc, record/stop for unlimited recording
 # 2022.11.14 - catch failed parameter setting; frame rate adjusted on format change
 # 2022.11.15 - cosmetic improvements, auto-save option on clip capture for instant recording
-# 2022.11.17 - cosmetic improvements, extend autosave to snapshots
+# 2022.11.17 - cosmetic improvements, filename missing minutes, extend autosave to snapshots
 
 set APPNAME [lindex [file split [info script]] end]
 set PLATFORM [lindex [array get tcl_platform os] 1]
@@ -376,7 +376,7 @@ proc CaptureClip {button duration} {
     SetStatus "ok" "Recording completed"
     }\
   else {
-    set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%S}]
+    set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%M%S}]
     set initfn [format "video-%s.avi" $time_stamp]
     if ($::autosave) {
       set fn $initfn
@@ -414,13 +414,14 @@ proc snapshot {} {
   image create photo snapshot_img
   uvc image $vd snapshot_img
     
-  set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%S}]
+  set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%M%S}]
   set initfn [format "snapshot-%s.png" $time_stamp]
   if ($::autosave) {
+    ### snapshots more frequent than once per sec will use the same filename, will overwrite
     set fn $initfn
     }\
   else {
-    set fn [tk_getSaveFile -filetypes {{"Image files" {.png}}} \
+    set fn [tk_getSaveFile -filetypes {{{image} {.png}} {{All Files} *}} \
       -initialfile $initfn -defaultextension .png]
     }
   if {[llength $fn]} {
