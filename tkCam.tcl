@@ -413,15 +413,18 @@ proc snapshot {} {
   image create photo snapshot_img
   uvc image $vd snapshot_img
     
-  set types {{"Image files" {.png}}} -text "$::char_record" -foreground "#dd0000" \
-   -helptext "Start recording a clip" -helptype balloon -state disabled
   set time_stamp [clock format [clock seconds] -format {%Y%m%d-%H%S}]
-  set filename [tk_getSaveFile -filetypes $types \
-   -initialfile [format "snapshot-%s.png" $time_stamp] -defaultextension .png]
-
-  if {[llength $filename]} {
-    snapshot_img write -format png $filename
-    SetStatus "ok" "Snapshot saved in $filename"
+  set initfn [format "snapshot-%s.png" $time_stamp]
+  if ($::autosave) {
+    set fn $initfn
+    }\
+  else {
+    set fn [tk_getSaveFile -filetypes {{"Image files" {.png}}} \
+      -initialfile $initfn -defaultextension .png]
+    }
+  if {[llength $fn]} {
+    snapshot_img write -format png $fn
+    SetStatus "ok" "Snapshot saved in $fn"
     } \
   else {
     SetStatus "ok" "Snapshot saving cancelled"
@@ -458,7 +461,7 @@ button .tbar.b -command [list startstop .tbar.b] -text "No camera"
 Button .tbar.clip -command { CaptureClip .tbar.clip 5 } -text "$char_record" -foreground "#dd0000" \
   -helptext "Start recording a clip" -helptype balloon -state disabled
 checkbutton .tbar.autosave -text "$char_disk" -variable autosave 
-DynamicHelp::register .tbar.autosave balloon "Save clips to disk, automatic file names"
+DynamicHelp::register .tbar.autosave balloon "Save snapshots and clips to disk without asking for file names"
 Button .tbar.exit -text "$char_cross" -foreground "#dd0000" -command { exit } \
   -helptext "Terminate the program" -helptype balloon
 button .tbar.help -text "?" -width 1
@@ -473,6 +476,7 @@ set exp ""
 
 frame .main -relief raised -borderwidth 1
 label .main.img -image [image create photo -width $MINW -height $MINH]
+DynamicHelp::register .main.img balloon "Left-click here to capture a snapshot; right-click to mirror"
 frame .main.params
 frame .main.params.bot 
 text  .main.params.bot.text -yscrollcommand ".main.params.bot.scroll set" -setgrid true -width 35
