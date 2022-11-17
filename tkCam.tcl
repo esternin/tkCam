@@ -12,10 +12,11 @@ exec /usr/local/bin/vanillawish "$0" -sdlresizable "$@"
 # 2022.11.12 - switch v4l2 -> tcluvc, record/stop for unlimited recording
 # 2022.11.14 - catch failed parameter setting; frame rate adjusted on format change
 # 2022.11.15 - cosmetic improvements, auto-save option on clip capture for instant recording
+# 2022.11.17 - cosmetic improvements, extend autosave to snapshots
 
 set APPNAME [lindex [file split [info script]] end]
 set PLATFORM [lindex [array get tcl_platform os] 1]
-set VERSION 2022.11.15
+set VERSION 2022.11.17
 set DEBUG 0
 set MINW  640
 set MINH  360
