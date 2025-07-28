@@ -191,17 +191,18 @@ proc SetFrameSize {} {
    global vd frame
    if {"$vd" == "" } { return } 
    if {"$frame" == "" } { return } 
-   foreach {fw fh} [split $frame x] break
+   set f [lindex [split $frame "@"] 0]
+   foreach {fw fh} [split $f x] break
    .main.img configure -width $fw -height $fh
    if {[v4l2 state $vd] eq "capture"} { 
      v4l2 stop $vd
-     v4l2 parameters $vd "frame-size" "$frame"
+     v4l2 parameters $vd "frame-size" "$f"
      v4l2 start $vd
      } \
    else {
-     v4l2 parameters $vd "frame-size" "$frame"
+     v4l2 parameters $vd "frame-size" "$f"
      }
-   SetStatus "ok" "Set frame size to $frame"
+   SetStatus "ok" "Set frame size to $f ($frame)"
    return "$frame"
    }	
 
@@ -261,6 +262,7 @@ proc imagecb {button img dev ind} {
     if {$ind eq "error"} {
 	$button configure -text "Preview"
     } else {
+        $img configure -width [winfo width .main.img] -height [winfo height .main.img]
 	v4l2 image $dev $img
     }
 }
