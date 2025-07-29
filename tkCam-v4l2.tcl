@@ -195,16 +195,16 @@ proc InitVideo {device} {
        .tbar.frate configure -from $p(frame-rate-minimum) -to $p(frame-rate-maximum) -increment $p(frame-rate-step)
        }
 #    set exp_mode [lindex [exec v4l2-ctl --device=$Vdev --get-ctrl=exposure_auto] 1]
-     if {![catch {set exp_mode $p(exposure-auto)}]} {
+     if {![catch {set exp_mode $p(auto-exposure)}]} {
        if {$exp_mode == "manual-mode"} { 
 #        set exp [lindex [exec v4l2-ctl --device=$Vdev --get-ctrl=exposure_absolute] 1]
-         set exp $p(exposure-absolute)
+         set exp $p(exposure-time-absolute)
          } \
        else {
          set exp "auto"
          }
        set ExposureMsg [format ", exposure: %s" [SetExposureTime]]
-       .tbar.exp configure -from $p(exposure-absolute-minimum) -to $p(exposure-absolute-maximum) -increment $p(exposure-absolute-step)
+       .tbar.exp configure -from $p(exposure-time-absolute-minimum) -to $p(exposure-time-absolute-maximum) -increment $p(exposure-time-absolute-step)
        }
      GetParams  ;# refresh to the latest settings, we may have changed things
      SetStatus "ok" "Connected to $device$FrameSizeMsg$FrameRateMsg$ExposureMsg"
@@ -256,18 +256,18 @@ proc SetExposureTime {} {
      return
      } \
    elseif {"$exp" == "auto"} {
-     v4l2 parameters $vd "exposure-auto" "aperture-priority-mode"
+     v4l2 parameters $vd "auto-exposure" "aperture-priority-mode"
 #     exec v4l2-ctl --device=$Vdev --set-ctrl=exposure_auto=3
      } \
    else {
 #     exec v4l2-ctl --device=$Vdev --set-ctrl=exposure_auto=1,exposure_absolute=$exp
-     if {"$exp" == "default"} { set exp $p(exposure-absolute-default) }
-     v4l2 parameters $vd "exposure-auto" "manual-mode"
-     v4l2 parameters $vd "exposure-absolute" "$exp"
+     if {"$exp" == "default"} { set exp $p(exposure-time-absolute-default) }
+     v4l2 parameters $vd "auto-exposure" "manual-mode"
+     v4l2 parameters $vd "exposure-time-absolute" "$exp"
      }
    array set p [v4l2 parameters $vd]
-   SetStatus "ok" "Set exposure to $p(exposure-auto) $p(exposure-absolute)"
-   return "$p(exposure-auto) $p(exposure-absolute)"
+   SetStatus "ok" "Set exposure to $p(auto-exposure) $p(exposure-time-absolute)"
+   return "$p(auto-exposure) $p(exposure-time-absolute)"
    }
 
 proc GetParams {} {
