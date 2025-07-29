@@ -1,5 +1,5 @@
 #!/bin/bash
-# the next line restarts using undroidwish\
+# the next line restarts using wish\
 exec wish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
 
 # Requires undroidwish or vanillawish, with v4l2 included
@@ -16,7 +16,8 @@ exec wish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 12
 # 2020.06.19 - snapshot & save, hide the settings panel, minor clean-up
 # 2022.11.01 - ffmpeg-based save of a clip of video stream
 # 2022.11.04 - replace button graphics with UTF-8 symbols, balloon help, high-DPI font sizes
-# 2025.07 - bugfix: match image and widget sizes when frame-size changes
+# 2025.07.27 - bugfix: match image and widget sizes when frame-size changes
+# 2025.07.29 - switch to wish by default, as v4l2 can now be installed separately from undroidwish/vanillawish
 
 set APPNAME [lindex [file split [info script]] end]
 set PLATFORM [lindex [array get tcl_platform os] 1]
@@ -43,16 +44,16 @@ else {
     }
   } 
 if { [catch {package require v4l2}] } {
-  puts stderr "v4l2 package is missing, are you using vanillawish/undroidwish?\n"; exit 1
+  puts stderr "v4l2 package is missing, use vanilla/undroidwish or install v4l2 (androwish.org/home/file/undroid/v4l2/)\n"; exit 1
   }
 if { [catch {package require BWidget}] } {
-  puts stderr "BWidget package is missing, are you using vanillawish/undroidwish?\n"; exit 1
+  puts stderr "BWidget package is missing, use vanillawish/undroidwish or try \"sudo apt-get install bwidget\"\n"; exit 1
   }
 
 ### for high-density displays, rescale to look similar to what a 72dpi would be
 set dpi [winfo fpixels . 1i]
 set factor [expr $dpi / 72.0]
-if ($DEBUG) {puts "Scaling everything by $factor"}
+if {$DEBUG} {puts stderr "Scaling everything by $factor"}
 foreach font [font names] {
   font configure $font -size [expr round($factor * [font configure $font -size])]
   }
