@@ -1,9 +1,15 @@
 #!/bin/bash
 # the next line restarts using undroidwish\
-exec /usr/local/bin/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
+exec wish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
 
 # Requires undroidwish or vanillawish, with v4l2 included
 # Last downloaded 2025.07 from http://www.androwish.org/
+#exec /usr/local/bin/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
+
+#### OR 
+# the v4l2 library from https://androwish.org/home/finfo?name=undroid/v4l2/
+# compiled and installed under the standard wish
+
 # Written by E.Sternin, as a proof of concept, but seems more reliable than "cheese"
 # 2017.04.11 - initial release
 # 2018.01.13 - exposure controls moved from external v4l2-ctl to internal v4l2 (only in undroidwish/vanillawish)
