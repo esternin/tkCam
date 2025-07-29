@@ -196,11 +196,11 @@ proc SetFrameSize {} {
    .main.img configure -width $fw -height $fh
    if {[v4l2 state $vd] eq "capture"} { 
      v4l2 stop $vd
-     v4l2 parameters $vd "frame-size" "$f"
+     v4l2 parameters $vd "frame-size" "$frame"
      v4l2 start $vd
      } \
    else {
-     v4l2 parameters $vd "frame-size" "$f"
+     v4l2 parameters $vd "frame-size" "$frame"
      }
    SetStatus "ok" "Set frame size to $f ($frame)"
    return "$frame"
@@ -422,7 +422,7 @@ frame .status
 label .status.led  -text "" -background green -width 2
 label .status.text -text "Ready. While running, left-click to rotate, right-click to clear"
 
-ComboBox .tbar.frame -textvariable frame -width 10 -modifycmd {SetFrameSize}
+ComboBox .tbar.frame -textvariable frame -width 16 -modifycmd {SetFrameSize}
 set frame ""
 
 spinbox .tbar.frate -width 5 -textvariable frate -command {SetFrameRate}
