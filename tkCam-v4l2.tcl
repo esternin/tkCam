@@ -1,27 +1,47 @@
 #!/bin/bash
 # the next line restarts using undroidwish\
-exec /usr/local/softdist/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
+exec /usr/local/bin/vanillawish "$0" -sdlrootheight 720 -sdlrootwidth 1280 -sdlheight 720 -sdlwidth 1280 -sdlresizable "$@"
 
-# Requires these source codes
-#   http://www.androwish.org/download/androwish-a03343f4cf.tar.gz
-# With this patch for v4l2.c for proper exposure control
-#   http://www.androwish.org/index.html/artifact/f155da6fa5a18e7e
-
-# Written by E.Sternin, as proof of concept, but proved more reliable than "cheese"
+# Requires undroidwish or vanillawish, with v4l2 included
+# Last downloaded 2025.07 from http://www.androwish.org/
+# Written by E.Sternin, as a proof of concept, but seems more reliable than "cheese"
 # 2017.04.11 - initial release
 # 2018.01.13 - exposure controls moved from external v4l2-ctl to internal v4l2 (only in undroidwish/vanillawish)
 # 2020.06.19 - snapshot & save, hide the settings panel, minor clean-up
 # 2022.11.01 - ffmpeg-based save of a clip of video stream
 # 2022.11.04 - replace button graphics with UTF-8 symbols, balloon help, high-DPI font sizes
+# 2025.07 - bugfix: match image and widget sizes when frame-size changes
 
 set APPNAME [lindex [file split [info script]] end]
 set PLATFORM [lindex [array get tcl_platform os] 1]
-set VERSION 2022.11.04
+set VERSION 2025.07.29
 set DEBUG 0
+foreach arg $argv {
+  if {"$arg"=="DEBUG"}  { set DEBUG 1 }
+  }
 
-package require Tk
-package require v4l2
-package require BWidget
+if {$DEBUG} {puts stderr "DEBUG: $APPNAME@$PLATFORM invoked with DEBUG"}
+
+if { [catch {package require Tk}] } {
+  puts stderr "Tk package is missing, maybe `sudo apt-get install tk`\n"; exit 1
+  }\
+else {
+  catch { tk_getOpenFile foo bar }
+  if { [namespace exists ::tk::dialog] } {
+    # some tcl/tk implementations do not implement ::tk::dialog
+    # do a dummy file load, to import the ::dialog:: space, change these tkfbox settings
+    # from the system-wide defaults, typically in /usr/share/tk8.5/tkfbox.tcl
+    if {$DEBUG} { puts stderr "DEBUG: changing the defaults settings for hidden files" }
+    set ::tk::dialog::file::showHiddenBtn 1
+    set ::tk::dialog::file::showHiddenVar 0
+    }
+  } 
+if { [catch {package require v4l2}] } {
+  puts stderr "v4l2 package is missing, are you using vanillawish/undroidwish?\n"; exit 1
+  }
+if { [catch {package require BWidget}] } {
+  puts stderr "BWidget package is missing, are you using vanillawish/undroidwish?\n"; exit 1
+  }
 
 ### for high-density displays, rescale to look similar to what a 72dpi would be
 set dpi [winfo fpixels . 1i]
